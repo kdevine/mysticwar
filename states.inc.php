@@ -2,7 +2,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * MysticWar implementation : © <Your name here> <Your email address here>
+ * MysticWar implementation : © Kevin Devine <kdevine@yahoo.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -48,56 +48,86 @@
 */
 
 //    !! It is not a good idea to modify this file when a game is running !!
+// define contants for state ids
+if (!defined('STATE_SETUP')) { // ensure this block is only invoked once, since it is included multiple times
+    define("STATE_SETUP", 1);
+    define("STATE_NEW_TRICK", 2);
+    define("STATE_PLAY_CARD", 3);
+    define("STATE_NEXT_PLAYER", 4);
+    define("STATE_RESOLVE_TRICK", 10);
+    define("STATE_CHECK_VICTORY", 15);
+    define("STATE_SCORE", 98);
+    define("STATE_END_GAME", 99);
+ }
 
- 
 $machinestates = array(
 
     // The initial state. Please do not modify.
-    1 => array(
+    STATE_SETUP => array(
         "name" => "gameSetup",
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array( "" => STATE_NEW_TRICK )
     ),
     
-    // Note: ID=2 => your first state
+    STATE_NEW_TRICK => array(
+    		"name" => "newTrick",
+    		"description" => "",
+    		"type" => "game",
+    		"action" => "stNewTrick",
+            "updateGameProgression" => true,
+    		"transitions" => array( "nextPlayer" => STATE_PLAY_CARD )
+    ),
 
-    2 => array(
-    		"name" => "playerTurn",
-    		"description" => clienttranslate('${actplayer} must play a card or pass'),
-    		"descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-    		"type" => "activeplayer",
-    		"possibleactions" => array( "playCard", "pass" ),
-    		"transitions" => array( "playCard" => 2, "pass" => 2 )
-    ),
-    
-/*
-    Examples:
-    
-    2 => array(
-        "name" => "nextPlayer",
-        "description" => '',
-        "type" => "game",
-        "action" => "stNextPlayer",
-        "updateGameProgression" => true,   
-        "transitions" => array( "endGame" => 99, "nextPlayer" => 10 )
-    ),
-    
-    10 => array(
+    STATE_PLAY_CARD => array(
         "name" => "playerTurn",
         "description" => clienttranslate('${actplayer} must play a card or pass'),
         "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
+        "descriptionlead" => clienttranslate('${actplayer} must play a card'),
+        "descriptionmyturnlead" => clienttranslate('${you} must play a card'),
         "type" => "activeplayer",
         "possibleactions" => array( "playCard", "pass" ),
-        "transitions" => array( "playCard" => 2, "pass" => 2 )
-    ), 
+        "args" => "argPlayCards",
+        "transitions" => array( "playCard" => STATE_NEXT_PLAYER, "pass" => STATE_NEXT_PLAYER )
+    ),
+    
+    STATE_NEXT_PLAYER => array(
+        "name" => "nextPlayer",
+        "description" => "",
+        "type" => "game",
+        "action" => "stNextPlayer",
+        "transitions" => array( "nextPlayer" => STATE_PLAY_CARD, "resolveTrick" => STATE_RESOLVE_TRICK )
+    ),
 
-*/    
+    STATE_RESOLVE_TRICK => array(
+        "name" => "endTrick",
+        "description" => "",
+        "type" => "game",
+        "action" => "stResolveTrick",
+        "transitions" => array( "checkVictory" => STATE_CHECK_VICTORY, "nextTrick" => STATE_NEW_TRICK )
+    ),
+
+    STATE_CHECK_VICTORY => array(
+        "name" => "checkVictory",
+        "description" => "",
+        "type" => "game",
+        "action" => "stCheckVictory",
+        "transistions" => array( "endGame" => STATE_SCORE, "nextTrick" => STATE_NEW_TRICK )
+    ),
+
+    STATE_SCORE => array(
+        "name" => "scoring",
+        "description" => "",
+        "type" => "game",
+        "action" => "stScoring",
+        "updateGameProgression" => true,
+        "transitions" => array( "" => STATE_END_GAME )
+    ),
    
     // Final state.
     // Please do not modify (and do not overload action/args methods).
-    99 => array(
+    STATE_END_GAME => array(
         "name" => "gameEnd",
         "description" => clienttranslate("End of game"),
         "type" => "manager",
